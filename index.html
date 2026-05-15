@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -384,10 +385,31 @@ function countPeriod(rows,period){
   var now=new Date();
   var desde=period==='dia'?startOfDay(now):period==='semana'?startOfWeek(now):startOfMonth(now);
   var result={};
-  for(var n in RESPONSABLES) result[n]={propio:0,seguimiento:0};
+  for(var n in RESPONSABLES) result[n]={
+    ingresadas:0, sinGestionar:0, gestionadas:0,
+    propioIng:0, propioSin:0, propioGest:0,
+    segIng:0, segSin:0, segGest:0
+  };
   rows.forEach(function(r){
-    var d=parseDate(r['FECHA RADICACIÓN']); if(!d||d<desde) return;
-    var rt=getRespType(r); if(rt.resp) result[rt.resp][rt.tipo]++;
+    var d=parseDate(r['FECHA DE INGRESO']); if(!d||d<desde) return;
+    var rt=getRespType(r); if(!rt.resp) return;
+    var estado=norm(r['ESTADO DEL TRÁMITE']||'');
+    var gestionado = estado==='contacto usuario'||estado==='oficio radicado'||
+                     estado==='respuesta completa'||estado==='respuesta parcial'||
+                     estado==='respuesta incompleta'||estado==='oficio enviado';
+    var sinGest = estado==='no contactado';
+    result[rt.resp].ingresadas++;
+    if(gestionado) result[rt.resp].gestionadas++;
+    if(sinGest) result[rt.resp].sinGestionar++;
+    if(rt.tipo==='propio'){
+      result[rt.resp].propioIng++;
+      if(gestionado) result[rt.resp].propioGest++;
+      if(sinGest) result[rt.resp].propioSin++;
+    } else {
+      result[rt.resp].segIng++;
+      if(gestionado) result[rt.resp].segGest++;
+      if(sinGest) result[rt.resp].segSin++;
+    }
   });
   return result;
 }
@@ -402,20 +424,59 @@ function renderPeriod(rows){
   var data=countPeriod(rows,currentPeriod);
   var labelMap={dia:'hoy',semana:'esta semana',mes:'este mes'};
   var label=labelMap[currentPeriod];
-  var totalGen=0;
+  var totalIng=0, totalSin=0, totalGest=0;
   var html='<div class="resp-grid">';
+
   for(var nombre in RESPONSABLES){
-    var cfg=RESPONSABLES[nombre], d=data[nombre], total=d.propio+d.seguimiento;
-    totalGen+=total;
+    var cfg=RESPONSABLES[nombre], d=data[nombre];
+    totalIng+=d.ingresadas; totalSin+=d.sinGestionar; totalGest+=d.gestionadas;
     var predNombre=titleCase(cfg.seguimiento[0]);
-    html+='<div class="period-box">'
-      +'<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:'+cfg.color+';margin-bottom:10px">'+nombre+'</div>'
-      +'<div class="period-row"><span class="period-name">🔵 Propios</span><span class="period-count" style="color:var(--blue)">'+d.propio+'</span></div>'
-      +'<div class="period-row"><span class="period-name">🟣 Seguimiento ('+predNombre+')</span><span class="period-count" style="color:var(--purple)">'+d.seguimiento+'</span></div>'
-      +'<div class="period-row" style="border-top:0.5px solid var(--border2);margin-top:4px;padding-top:8px"><span style="font-size:12px;color:var(--text2);font-weight:500">Total '+label+'</span><span class="period-count" style="color:var(--text)">'+total+'</span></div>'
+    var tasa=d.ingresadas>0?Math.round(d.gestionadas/d.ingresadas*100):0;
+    var tasaColor=tasa>=70?'#22c55e':tasa>=40?'#f59e0b':'#ef4444';
+
+    html+='<div class="resp-card">'
+      +'<div class="resp-header">'
+        +'<div><div class="resp-name">'+nombre+'</div>'
+        +'<div style="font-size:11px;color:var(--text3);margin-top:2px">Tasa de gestión: <strong style="color:'+tasaColor+'">'+tasa+'%</strong></div></div>'
+        +'<div style="text-align:right"><div style="font-size:11px;color:var(--text3)">Ingresadas '+label+'</div>'
+        +'<div style="font-size:24px;font-weight:700;color:'+cfg.color+';line-height:1">'+d.ingresadas+'</div></div>'
+      +'</div>'
+
+      // Propios
+      +'<span class="block-label block-propio">Propios</span>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">'
+        +'<div class="mini-stat"><div class="mini-stat-label">Ingresadas</div><div class="mini-stat-value blue">'+d.propioIng+'</div></div>'
+        +'<div class="mini-stat"><div class="mini-stat-label">Sin gestionar</div><div class="mini-stat-value '+(d.propioSin>0?'amber':'')+'">'+d.propioSin+'</div></div>'
+        +'<div class="mini-stat"><div class="mini-stat-label">Gestionadas</div><div class="mini-stat-value green">'+d.propioGest+'</div></div>'
+      +'</div>'
+
+      // Seguimiento
+      +'<span class="block-label block-seguimiento">Seguimiento · '+predNombre+'</span>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">'
+        +'<div class="mini-stat"><div class="mini-stat-label">Ingresadas</div><div class="mini-stat-value blue">'+d.segIng+'</div></div>'
+        +'<div class="mini-stat"><div class="mini-stat-label">Sin gestionar</div><div class="mini-stat-value '+(d.segSin>0?'amber':'')+'">'+d.segSin+'</div></div>'
+        +'<div class="mini-stat"><div class="mini-stat-label">Gestionadas</div><div class="mini-stat-value green">'+d.segGest+'</div></div>'
+      +'</div>'
+
+      // Barra de gestión
+      +'<div class="progress-bar"><div class="progress-fill" style="width:'+tasa+'%;background:'+tasaColor+'"></div></div>'
+      +'<div style="font-size:10px;color:var(--text3);margin-top:3px;text-align:right">'+d.gestionadas+' de '+d.ingresadas+' gestionadas '+label+'</div>'
     +'</div>';
   }
-  html+='</div><div style="margin-top:10px;padding:0.75rem 1.25rem;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:space-between"><span style="font-size:12px;color:var(--text2)">Total general '+label+'</span><span style="font-size:20px;font-weight:700;color:var(--blue)">'+totalGen+'</span></div>';
+  html+='</div>';
+
+  // Resumen total
+  var tasaTotal=totalIng>0?Math.round(totalGest/totalIng*100):0;
+  var tasaTotalColor=tasaTotal>=70?'#22c55e':tasaTotal>=40?'#f59e0b':'#ef4444';
+  html+='<div style="margin-top:10px;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:1rem 1.25rem;">'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;">'
+      +'<div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Total ingresadas</div><div style="font-size:22px;font-weight:700;color:var(--blue)">'+totalIng+'</div></div>'
+      +'<div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Sin gestionar</div><div style="font-size:22px;font-weight:700;color:var(--amber)">'+totalSin+'</div></div>'
+      +'<div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Gestionadas</div><div style="font-size:22px;font-weight:700;color:var(--green)">'+totalGest+'</div></div>'
+      +'<div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Tasa gestión</div><div style="font-size:22px;font-weight:700;color:'+tasaTotalColor+'">'+tasaTotal+'%</div></div>'
+    +'</div>'
+  +'</div>';
+
   document.getElementById('period-section').innerHTML=html;
 }
 
