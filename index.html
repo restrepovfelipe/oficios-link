@@ -45,6 +45,8 @@ body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkM
 
 .metrics { display:grid; grid-template-columns:repeat(6,1fr); gap:10px; }
 .metric { background:var(--bg2); border:0.5px solid var(--border); border-radius:var(--radius-lg); padding:1rem 1.25rem; }
+.metric-clickable { cursor:pointer; transition:background 0.15s,border-color 0.15s; }
+.metric-clickable:hover { background:var(--bg3); border-color:var(--border2); }
 .metric-label { font-size:11px; color:var(--text3); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:8px; }
 .metric-value { font-size:28px; font-weight:600; line-height:1; color:var(--text); letter-spacing:-1px; }
 .metric-value.red{color:var(--red);} .metric-value.amber{color:var(--amber);} .metric-value.green{color:var(--green);} .metric-value.blue{color:var(--blue);} .metric-value.orange{color:var(--orange);}
@@ -212,6 +214,26 @@ body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkM
   </div>
 </div>
 
+<!-- MODAL LISTADO (métricas) -->
+<div class="modal-overlay" id="modalListadoOverlay" onclick="if(event.target===this)cerrarModalListado()">
+  <div class="modal" style="max-width:920px">
+    <div class="modal-header">
+      <div class="modal-title" id="modalListadoTitle">Listado</div>
+      <button class="modal-close" onclick="cerrarModalListado()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-info" id="modalListadoInfo"></div>
+      <div class="tabla-scroll" style="max-height:55vh"><table class="tabla-vencidos">
+        <thead><tr><th>Radicado</th><th>Denunciante</th><th>Asunto</th><th>Entidad</th><th>Responsable</th><th>Estado</th><th>Vencimiento</th></tr></thead>
+        <tbody id="modalListadoBody"></tbody>
+      </table></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" style="background:var(--green);color:#fff;border-color:var(--green)" onclick="exportarModalListadoExcel()">📊 Exportar Excel</button>
+    </div>
+  </div>
+</div>
+
 <div class="app-shell">
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
@@ -283,6 +305,8 @@ const RESPONSABLES={
 let charts={}, allRows=[], currentPeriod='semana', currentPage='dashboard';
 let radicadosVencidosData=[], radicadosNoVencidosData=[], radicadosProximosData=[];
 let modalGmailData={ to:'', subject:'' };
+let METRIC_ROWS={ total:[], vencidos:[], noContactados:[], incompletos:[], solucionados:[] };
+let modalListadoData={ rows:[], titulo:'' };
 const DIAS_ALERTA = 5;
 const PAGE_TITLES = { dashboard:'Dashboard', vencidos:'Oficios Vencidos', novencidos:'Oficios No Vencidos', alertas:'Alertas — Próximos a Vencer' };
 
@@ -390,6 +414,58 @@ function abrirModal(title, info, lista, gmailTo, gmailSubject){
   document.getElementById('modalOverlay').classList.add('open');
 }
 function cerrarModal(){ document.getElementById('modalOverlay').classList.remove('open'); }
+
+function abrirModalListado(titulo, rows){
+  modalListadoData={ rows:rows, titulo:titulo };
+  document.getElementById('modalListadoTitle').textContent=titulo;
+  document.getElementById('modalListadoInfo').textContent=rows.length+' oficio(s) encontrados.';
+  var tbody=rows.map(function(r){
+    var rad=(r['RADICADO (CONCEJO) DEL OFICIO']||r['RADICADO (ALCALDÍA) DEL OFICIO']||'—').toString().trim();
+    var denunciante=(r['NOMBRE DEL DENUNCIANTE']||'—').toString().trim();
+    var asunto=getField(r,'asunto')||'—';
+    var entidad=(r['ENTIDAD DE DESTINO']||'—').toString().trim();
+    var resp=(r['RESPONSABLE']||'—').toString().trim();
+    var estado=(r['ESTADO DEL TRÁMITE']||'—').toString().trim();
+    var vencDate=parseDate(r['VENCIMIENTO']||'');
+    var vencStr=vencDate?vencDate.toLocaleDateString('es-CO'):'—';
+    return '<tr>'
+      +'<td style="font-family:monospace;font-size:11px;color:var(--text)">'+rad+'</td>'
+      +'<td>'+denunciante+'</td>'
+      +'<td style="max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+asunto+'">'+asunto+'</td>'
+      +'<td>'+entidad+'</td>'
+      +'<td>'+resp+'</td>'
+      +'<td>'+estado+'</td>'
+      +'<td>'+vencStr+'</td></tr>';
+  }).join('');
+  document.getElementById('modalListadoBody').innerHTML=tbody||'<tr><td colspan="7" style="color:var(--text3);padding:1rem 0">Sin registros</td></tr>';
+  document.getElementById('modalListadoOverlay').classList.add('open');
+}
+function cerrarModalListado(){ document.getElementById('modalListadoOverlay').classList.remove('open'); }
+
+function exportarModalListadoExcel(){
+  var rows=modalListadoData.rows;
+  if(!rows.length){ alert('No hay datos para exportar.'); return; }
+  var datos=rows.map(function(r,i){
+    var vencDate=parseDate(r['VENCIMIENTO']||'');
+    return {
+      '#': i+1,
+      'Radicado': (r['RADICADO (CONCEJO) DEL OFICIO']||r['RADICADO (ALCALDÍA) DEL OFICIO']||'—').toString().trim(),
+      'Denunciante': (r['NOMBRE DEL DENUNCIANTE']||'—').toString().trim(),
+      'Asunto': getField(r,'asunto')||'—',
+      'Entidad': (r['ENTIDAD DE DESTINO']||'—').toString().trim(),
+      'Responsable': (r['RESPONSABLE']||'—').toString().trim(),
+      'Estado': (r['ESTADO DEL TRÁMITE']||'—').toString().trim(),
+      'Vencimiento': vencDate?vencDate.toLocaleDateString('es-CO'):'—'
+    };
+  });
+  var ws=XLSX.utils.json_to_sheet(datos);
+  ws['!cols']=[{wch:4},{wch:16},{wch:24},{wch:40},{wch:28},{wch:20},{wch:20},{wch:14}];
+  var wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,(modalListadoData.titulo||'Listado').substring(0,31));
+  var fechaArchivo=new Date().toISOString().slice(0,10);
+  var nombreArchivo=(modalListadoData.titulo||'Listado').replace(/[^a-zA-Z0-9]+/g,'_')+'_'+fechaArchivo+'.xlsx';
+  XLSX.writeFile(wb,nombreArchivo);
+}
 function copiarLista(){
   var el=document.getElementById('modalLista');
   navigator.clipboard.writeText(el.textContent).then(function(){
@@ -779,11 +855,13 @@ function renderTablaOficios(suffix, rows){
 function render(rows){
   destroyAll();
   var total=rows.length;
-  var vencidos=rows.filter(function(r){return isVencido(r['¿SE ENCUENTRA VENCIDO?']||'');}).length;
-  var solucionados=rows.filter(isSolucionado).length;
-  var incompletos=rows.filter(isIncompleto).length;
-  var noContactados=rows.filter(isNoContactado).length;
+  var vencidosRows=rows.filter(function(r){return isVencido(r['¿SE ENCUENTRA VENCIDO?']||'');});
+  var solucionadosRows=rows.filter(isSolucionado);
+  var incompletosRows=rows.filter(isIncompleto);
+  var noContactadosRows=rows.filter(isNoContactado);
+  var vencidos=vencidosRows.length, solucionados=solucionadosRows.length, incompletos=incompletosRows.length, noContactados=noContactadosRows.length;
   var eficiencia=total>0?Math.round(solucionados/total*100):0;
+  METRIC_ROWS={ total:rows, vencidos:vencidosRows, noContactados:noContactadosRows, incompletos:incompletosRows, solucionados:solucionadosRows };
 
   var radicados=rows.filter(function(r){ return norm(r['ESTADO DEL TRÁMITE']||'')==='oficio radicado'; });
   radicadosVencidosData=radicados.filter(function(r){ return isVencido(r['¿SE ENCUENTRA VENCIDO?']||''); });
@@ -808,12 +886,12 @@ function render(rows){
   // RESUMEN
   html+='<div class="section-title">Resumen general</div>';
   html+='<div class="metrics">'
-    +'<div class="metric"><div class="metric-label">Total oficios</div><div class="metric-value">'+total.toLocaleString('es-CO')+'</div><div class="metric-sub">registros</div></div>'
-    +'<div class="metric"><div class="metric-label">Vencidos</div><div class="metric-value red">'+vencidos.toLocaleString('es-CO')+'</div><div class="metric-sub">'+(total?Math.round(vencidos/total*100):0)+'% del total</div></div>'
-    +'<div class="metric"><div class="metric-label">No contactados</div><div class="metric-value amber">'+noContactados.toLocaleString('es-CO')+'</div><div class="metric-sub">sin atender</div></div>'
-    +'<div class="metric"><div class="metric-label">Resp. incompleta</div><div class="metric-value orange">'+incompletos.toLocaleString('es-CO')+'</div><div class="metric-sub">requieren seguimiento</div></div>'
-    +'<div class="metric"><div class="metric-label">Solucionados</div><div class="metric-value green">'+solucionados.toLocaleString('es-CO')+'</div><div class="metric-sub">completa + parcial</div></div>'
-    +'<div class="metric"><div class="metric-label">Eficiencia</div><div class="metric-value blue">'+eficiencia+'%</div><div class="metric-sub">tasa resolución</div></div>'
+    +'<div class="metric metric-clickable" onclick="abrirModalListado(\'Total de oficios\', METRIC_ROWS.total)"><div class="metric-label">Total oficios</div><div class="metric-value">'+total.toLocaleString('es-CO')+'</div><div class="metric-sub">registros</div></div>'
+    +'<div class="metric metric-clickable" onclick="abrirModalListado(\'Oficios vencidos\', METRIC_ROWS.vencidos)"><div class="metric-label">Vencidos</div><div class="metric-value red">'+vencidos.toLocaleString('es-CO')+'</div><div class="metric-sub">'+(total?Math.round(vencidos/total*100):0)+'% del total</div></div>'
+    +'<div class="metric metric-clickable" onclick="abrirModalListado(\'No contactados\', METRIC_ROWS.noContactados)"><div class="metric-label">No contactados</div><div class="metric-value amber">'+noContactados.toLocaleString('es-CO')+'</div><div class="metric-sub">sin atender</div></div>'
+    +'<div class="metric metric-clickable" onclick="abrirModalListado(\'Respuesta incompleta\', METRIC_ROWS.incompletos)"><div class="metric-label">Resp. incompleta</div><div class="metric-value orange">'+incompletos.toLocaleString('es-CO')+'</div><div class="metric-sub">requieren seguimiento</div></div>'
+    +'<div class="metric metric-clickable" onclick="abrirModalListado(\'Solucionados\', METRIC_ROWS.solucionados)"><div class="metric-label">Solucionados</div><div class="metric-value green">'+solucionados.toLocaleString('es-CO')+'</div><div class="metric-sub">completa + parcial</div></div>'
+    +'<div class="metric metric-clickable" onclick="abrirModalListado(\'Solucionados (eficiencia)\', METRIC_ROWS.solucionados)"><div class="metric-label">Eficiencia</div><div class="metric-value blue">'+eficiencia+'%</div><div class="metric-sub">tasa resolución</div></div>'
   +'</div>';
 
   // EFICIENCIA POR RESPONSABLE
