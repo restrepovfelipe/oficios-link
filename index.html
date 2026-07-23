@@ -396,7 +396,7 @@ function pageWrap(titulo, count, wrapId){
 }
 
 function getRespType(row){
-  var r=norm(row['RESPONSABLE']||'');
+  var r=norm(row['ENCARGADO']||'');
   for(var nombre in RESPONSABLES){
     var cfg=RESPONSABLES[nombre];
     if(cfg.propios.indexOf(r)!==-1) return {resp:nombre,tipo:'propio'};
@@ -424,7 +424,7 @@ function abrirModalListado(titulo, rows){
     var denunciante=(r['NOMBRE DEL DENUNCIANTE']||'—').toString().trim();
     var asunto=getField(r,'asunto')||'—';
     var entidad=(r['ENTIDAD DE DESTINO']||'—').toString().trim();
-    var resp=(r['RESPONSABLE']||'—').toString().trim();
+    var resp=(r['ENCARGADO']||'—').toString().trim();
     var estado=(r['ESTADO DEL TRÁMITE']||'—').toString().trim();
     var vencDate=parseDate(r['VENCIMIENTO']||'');
     var vencStr=vencDate?vencDate.toLocaleDateString('es-CO'):'—';
@@ -453,7 +453,7 @@ function exportarModalListadoExcel(){
       'Denunciante': (r['NOMBRE DEL DENUNCIANTE']||'—').toString().trim(),
       'Asunto': getField(r,'asunto')||'—',
       'Entidad': (r['ENTIDAD DE DESTINO']||'—').toString().trim(),
-      'Responsable': (r['RESPONSABLE']||'—').toString().trim(),
+      'Responsable': (r['ENCARGADO']||'—').toString().trim(),
       'Estado': (r['ESTADO DEL TRÁMITE']||'—').toString().trim(),
       'Vencimiento': vencDate?vencDate.toLocaleDateString('es-CO'):'—'
     };
@@ -819,7 +819,7 @@ function renderTablaOficios(suffix, rows){
     var asunto=getField(r,'asunto')||'—';
     var vencDate=parseDate(r['VENCIMIENTO']||'');
     var vencStr=vencDate?vencDate.toLocaleDateString('es-CO'):'—';
-    var resp=(r['RESPONSABLE']||'—').toString().trim();
+    var resp=(r['ENCARGADO']||'—').toString().trim();
     var searchStr=norm(rad+' '+entidad+' '+denunciante+' '+asunto+' '+resp);
     var badge=cfg.badge(r);
     return '<tr data-search="'+searchStr+'" data-entidad="'+norm(entidad)+'">'
@@ -877,7 +877,7 @@ function render(rows){
   var porEstado=groupBy(rows,'ESTADO DEL TRÁMITE',8);
   var porEntidad=groupBy(rows,'ENTIDAD DE DESTINO',7);
   var porComuna=groupBy(rows,'COMUNA',7);
-  var porResp=groupBy(rows,'RESPONSABLE');
+  var porResp=groupBy(rows,'ENCARGADO');
   var meses=byMonth(rows,'FECHA RADICACIÓN');
   var mesH=Math.max(220,meses.length*26+70);
 
