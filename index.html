@@ -145,6 +145,39 @@ body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkM
 .login-btn:hover { opacity:0.88; }
 .login-error { font-size:12px; color:var(--red); margin-top:8px; min-height:18px; }
 .login-lock { font-size:36px; margin-bottom:1rem; }
+
+/* SIDEBAR / APP SHELL */
+.app-shell { display:flex; min-height:100vh; }
+.sidebar { width:240px; flex-shrink:0; background:var(--bg2); border-right:0.5px solid var(--border); display:flex; flex-direction:column; position:sticky; top:0; height:100vh; }
+.sidebar-brand { padding:1.5rem 1.5rem 1rem; }
+.sidebar-title { font-size:17px; font-weight:600; color:var(--text); letter-spacing:-0.3px; }
+.sidebar-title span { color:var(--blue); }
+.sidebar-sub { font-size:12px; color:var(--text3); margin-top:2px; }
+.sidebar-nav { flex:1; padding:0.5rem 0.75rem; display:flex; flex-direction:column; gap:2px; overflow-y:auto; }
+.sidebar-link { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:var(--radius); color:var(--text2); font-size:13px; font-weight:500; text-decoration:none; transition:background 0.15s,color 0.15s; }
+.sidebar-link:hover { background:var(--bg3); color:var(--text); }
+.sidebar-link.active { background:var(--bg3); color:var(--text); }
+.sidebar-icon { font-size:15px; width:18px; text-align:center; flex-shrink:0; }
+.sidebar-label { flex:1; }
+.sidebar-badge { font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px; min-width:18px; text-align:center; }
+.sidebar-badge-red { background:rgba(239,68,68,0.18); color:#ef4444; }
+.sidebar-badge-green { background:rgba(34,197,94,0.18); color:#22c55e; }
+.sidebar-badge-amber { background:rgba(245,158,11,0.18); color:#f59e0b; }
+.sidebar-footer { padding:1rem 1.5rem; border-top:0.5px solid var(--border); display:flex; flex-direction:column; gap:8px; }
+.main-area { flex:1; min-width:0; display:flex; flex-direction:column; }
+
+@media (max-width:800px) {
+  .app-shell { flex-direction:column; }
+  .sidebar { width:100%; height:auto; position:sticky; top:0; z-index:90; flex-direction:row; align-items:stretch; border-right:none; border-bottom:0.5px solid var(--border); }
+  .sidebar-brand { padding:0.75rem 1rem; border-right:0.5px solid var(--border); }
+  .sidebar-sub { display:none; }
+  .sidebar-nav { flex-direction:row; overflow-x:auto; padding:0.5rem; gap:4px; }
+  .sidebar-link { white-space:nowrap; }
+  .sidebar-footer { display:none; }
+}
+
+.badge-vigente { display:inline-block; background:rgba(34,197,94,0.15); color:#22c55e; font-size:10px; padding:2px 7px; border-radius:4px; font-weight:600; }
+.badge-proximo { display:inline-block; background:rgba(245,158,11,0.15); color:#f59e0b; font-size:10px; padding:2px 7px; border-radius:4px; font-weight:600; }
 </style>
 </head>
 <body>
@@ -179,27 +212,61 @@ body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkM
   </div>
 </div>
 
-<div class="topbar">
-  <div class="logo">Oficios <span>LINK</span></div>
-  <div class="topbar-right">
-    <span class="badge-live">En vivo</span>
-    <span class="last-sync" id="lastSync"></span>
-    <button class="btn" id="syncBtn" onclick="loadData()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/>
-        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/>
-      </svg>
-      Actualizar
-    </button>
-  </div>
-</div>
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-title">Oficios <span>LINK</span></div>
+      <div class="sidebar-sub">Panel de seguimiento</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#" class="sidebar-link active" data-page="dashboard" onclick="showPage('dashboard');return false;">
+        <span class="sidebar-icon">📊</span><span class="sidebar-label">Dashboard</span>
+      </a>
+      <a href="#" class="sidebar-link" data-page="vencidos" onclick="showPage('vencidos');return false;">
+        <span class="sidebar-icon">⛔</span><span class="sidebar-label">Vencidos</span>
+        <span class="sidebar-badge sidebar-badge-red" id="badgeVencidos" style="display:none">0</span>
+      </a>
+      <a href="#" class="sidebar-link" data-page="novencidos" onclick="showPage('novencidos');return false;">
+        <span class="sidebar-icon">✅</span><span class="sidebar-label">No vencidos</span>
+        <span class="sidebar-badge sidebar-badge-green" id="badgeNoVencidos" style="display:none">0</span>
+      </a>
+      <a href="#" class="sidebar-link" data-page="alertas" onclick="showPage('alertas');return false;">
+        <span class="sidebar-icon">🔔</span><span class="sidebar-label">Alertas</span>
+        <span class="sidebar-badge sidebar-badge-amber" id="badgeAlertas" style="display:none">0</span>
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <span class="badge-live">En vivo</span>
+      <span class="last-sync" id="lastSync"></span>
+    </div>
+  </aside>
 
-<div class="container">
-  <div id="root">
-    <div class="state-center">
-      <div class="spinner"></div>
-      <div>Conectando con Google Sheets...</div>
-      <div style="font-size:12px;color:var(--text3)">Esto puede tomar hasta 45 segundos la primera vez</div>
+  <div class="main-area">
+    <div class="topbar">
+      <div class="logo" id="pageTitle">Dashboard</div>
+      <div class="topbar-right">
+        <button class="btn" id="syncBtn" onclick="loadData()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/>
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/>
+          </svg>
+          Actualizar
+        </button>
+      </div>
+    </div>
+
+    <div class="container">
+      <div id="root">
+        <div class="state-center">
+          <div class="spinner"></div>
+          <div>Conectando con Google Sheets...</div>
+          <div style="font-size:12px;color:var(--text3)">Esto puede tomar hasta 45 segundos la primera vez</div>
+        </div>
+      </div>
+      <div id="page-dashboard"></div>
+      <div id="page-vencidos" style="display:none"></div>
+      <div id="page-novencidos" style="display:none"></div>
+      <div id="page-alertas" style="display:none"></div>
     </div>
   </div>
 </div>
@@ -213,8 +280,11 @@ const RESPONSABLES={
   'Emiliana García':{ color:'#22c55e', propios:['emiliana garcía','emiliana garcia'], seguimiento:['juan manuel sierra'] }
 };
 
-let charts={}, allRows=[], currentPeriod='semana', radicadosVencidosData=[];
+let charts={}, allRows=[], currentPeriod='semana', currentPage='dashboard';
+let radicadosVencidosData=[], radicadosNoVencidosData=[], radicadosProximosData=[];
 let modalGmailData={ to:'', subject:'' };
+const DIAS_ALERTA = 5;
+const PAGE_TITLES = { dashboard:'Dashboard', vencidos:'Oficios Vencidos', novencidos:'Oficios No Vencidos', alertas:'Alertas — Próximos a Vencer' };
 
 function destroyAll(){ Object.values(charts).forEach(function(c){if(c)c.destroy();}); charts={}; }
 function norm(v){ return (v||'').toString().trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
@@ -249,6 +319,57 @@ function startOfDay(d){var r=new Date(d);r.setHours(0,0,0,0);return r;}
 function startOfWeek(d){var day=d.getDay(),diff=(day===0)?-6:1-day,r=new Date(d);r.setDate(d.getDate()+diff);r.setHours(0,0,0,0);return r;}
 function startOfMonth(d){return new Date(d.getFullYear(),d.getMonth(),1);}
 function titleCase(s){return s.split(' ').map(function(w){return w.charAt(0).toUpperCase()+w.slice(1);}).join(' ');}
+
+// ── PÁGINAS / SIDEBAR ──────────────────────────────────────────────────────
+const TABLE_CFG = {
+  Vencidos: {
+    titulo:'Oficios Radicados Vencidos', filePrefix:'Oficios_Vencidos',
+    empty:'No hay oficios radicados vencidos.', vencColor:'var(--red)',
+    badge:function(){ return {text:'Vencido', cls:'badge-vencido'}; }
+  },
+  NoVencidos: {
+    titulo:'Oficios Radicados No Vencidos', filePrefix:'Oficios_No_Vencidos',
+    empty:'No hay oficios radicados vigentes.', vencColor:'var(--green)',
+    badge:function(){ return {text:'Vigente', cls:'badge-vigente'}; }
+  },
+  Alertas: {
+    titulo:'Alertas — Próximos a Vencer', filePrefix:'Oficios_Proximos_Vencer',
+    empty:'No hay oficios próximos a vencer.', vencColor:'var(--amber)',
+    badge:function(r){
+      var d=parseDate(r['VENCIMIENTO']||''); if(!d) return {text:'—',cls:'badge-proximo'};
+      var dias=Math.round((startOfDay(d)-startOfDay(new Date()))/86400000);
+      var text=dias<=0?'Hoy':dias===1?'Mañana':dias+' días';
+      return {text:text, cls:'badge-proximo'};
+    }
+  }
+};
+
+function showPage(page){
+  currentPage=page;
+  Object.keys(PAGE_TITLES).forEach(function(p){
+    var el=document.getElementById('page-'+p);
+    if(el) el.style.display=(p===page)?'':'none';
+  });
+  document.querySelectorAll('.sidebar-link').forEach(function(a){ a.classList.toggle('active', a.dataset.page===page); });
+  var titleEl=document.getElementById('pageTitle'); if(titleEl) titleEl.textContent=PAGE_TITLES[page];
+}
+
+function setBadge(id, count){
+  var el=document.getElementById(id); if(!el) return;
+  el.textContent=count;
+  el.style.display=count>0?'':'none';
+}
+
+function updateSidebarBadges(){
+  setBadge('badgeVencidos', radicadosVencidosData.length);
+  setBadge('badgeNoVencidos', radicadosNoVencidosData.length);
+  setBadge('badgeAlertas', radicadosProximosData.length);
+}
+
+function pageWrap(titulo, count, wrapId){
+  return '<div class="section-header"><div class="section-title">'+titulo+' ('+count+')</div></div>'
+    +'<div class="card"><div id="'+wrapId+'"><div style="color:var(--text3);font-size:13px">Cargando...</div></div></div>';
+}
 
 function getRespType(row){
   var r=norm(row['RESPONSABLE']||'');
@@ -493,30 +614,31 @@ function getFilaData(tr){
   };
 }
 
-function filtrarTabla(){
-  var q=norm(document.getElementById('searchVencidos').value);
-  var sec=norm(document.getElementById('filtroSecretaria').value);
-  document.querySelectorAll('#tbodyVencidos tr').forEach(function(tr){
+function filtrarTabla(suffix){
+  var q=norm(document.getElementById('search'+suffix).value);
+  var sec=norm(document.getElementById('filtro'+suffix).value);
+  document.querySelectorAll('#tbody'+suffix+' tr').forEach(function(tr){
     var matchQ=!q||tr.dataset.search.indexOf(q)!==-1;
     var matchS=!sec||tr.dataset.entidad===sec;
     tr.style.display=(matchQ&&matchS)?'':'none';
   });
-  actualizarContadorTabla();
+  actualizarContadorTabla(suffix);
 }
 
-function actualizarContadorTabla(){
-  var visible=document.querySelectorAll('#tbodyVencidos tr:not([style*="none"])').length;
-  var el=document.getElementById('contadorTabla');
+function actualizarContadorTabla(suffix){
+  var visible=document.querySelectorAll('#tbody'+suffix+' tr:not([style*="none"])').length;
+  var el=document.getElementById('contador'+suffix);
   if(el) el.textContent=visible+' oficio(s) mostrados';
 }
 
-function exportarPDF(){
-  var filas=Array.from(document.querySelectorAll('#tbodyVencidos tr')).filter(function(tr){
+function exportarPDF(suffix){
+  var cfg=TABLE_CFG[suffix];
+  var filas=Array.from(document.querySelectorAll('#tbody'+suffix+' tr')).filter(function(tr){
     return tr.style.display!=='none';
   });
   if(!filas.length){alert('No hay filas visibles para exportar.');return;}
 
-  var secEl=document.getElementById('filtroSecretaria');
+  var secEl=document.getElementById('filtro'+suffix);
   var secNombre=secEl&&secEl.value?secEl.options[secEl.selectedIndex].text:'Todas las entidades';
   var fecha=new Date().toLocaleDateString('es-CO',{year:'numeric',month:'long',day:'numeric'});
 
@@ -524,7 +646,7 @@ function exportarPDF(){
 
   var win=window.open('','_blank');
   win.document.write('<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">');
-  win.document.write('<title>Oficios Radicados Vencidos — '+secNombre+'</title>');
+  win.document.write('<title>'+cfg.titulo+' — '+secNombre+'</title>');
   win.document.write('<style>');
   win.document.write('*{box-sizing:border-box;margin:0;padding:0;}');
   win.document.write('body{font-family:Arial,sans-serif;font-size:11px;color:#111;padding:32px;}');
@@ -545,7 +667,7 @@ function exportarPDF(){
   win.document.write('@media print{body{padding:16px;}button{display:none!important;}}');
   win.document.write('</style></head><body>');
   win.document.write('<div class="header">');
-  win.document.write('<div class="titulo">Oficios Radicados Vencidos</div>');
+  win.document.write('<div class="titulo">'+cfg.titulo+'</div>');
   win.document.write('<div class="subtitulo">Entidad: <strong>'+secNombre+'</strong></div>');
   win.document.write('<div class="meta">Generado el '+fecha+' &nbsp;|&nbsp; Total: <strong>'+filasPDF.length+' oficio(s)</strong></div>');
   win.document.write('</div>');
@@ -570,13 +692,14 @@ function exportarPDF(){
   win.document.close();
 }
 
-function exportarExcel(){
-  var filas=Array.from(document.querySelectorAll('#tbodyVencidos tr')).filter(function(tr){
+function exportarExcel(suffix){
+  var cfg=TABLE_CFG[suffix];
+  var filas=Array.from(document.querySelectorAll('#tbody'+suffix+' tr')).filter(function(tr){
     return tr.style.display!=='none';
   });
   if(!filas.length){alert('No hay filas visibles para exportar.');return;}
 
-  var secEl=document.getElementById('filtroSecretaria');
+  var secEl=document.getElementById('filtro'+suffix);
   var secNombre=secEl&&secEl.value?secEl.options[secEl.selectedIndex].text:'Todas las entidades';
 
   var filasXLS=filas.map(function(tr){return getFilaData(tr);});
@@ -596,15 +719,17 @@ function exportarExcel(){
   var ws=XLSX.utils.json_to_sheet(datos);
   ws['!cols']=[{wch:4},{wch:16},{wch:24},{wch:40},{wch:28},{wch:14},{wch:20}];
   var wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,'Oficios Vencidos');
+  XLSX.utils.book_append_sheet(wb,ws,cfg.titulo.substring(0,31));
 
   var fechaArchivo=new Date().toISOString().slice(0,10);
-  var nombreArchivo='Oficios_Vencidos_'+secNombre.replace(/[^a-zA-Z0-9]+/g,'_')+'_'+fechaArchivo+'.xlsx';
+  var nombreArchivo=cfg.filePrefix+'_'+secNombre.replace(/[^a-zA-Z0-9]+/g,'_')+'_'+fechaArchivo+'.xlsx';
   XLSX.writeFile(wb,nombreArchivo);
 }
 
-function renderTablaVencidos(rows){
-  if(!rows.length){ document.getElementById('tablaVencidosWrap').innerHTML='<div style="color:var(--text3);font-size:13px;padding:1rem 0">No hay oficios radicados vencidos.</div>'; return; }
+function renderTablaOficios(suffix, rows){
+  var cfg=TABLE_CFG[suffix];
+  var wrap=document.getElementById('wrap'+suffix);
+  if(!rows.length){ wrap.innerHTML='<div style="color:var(--text3);font-size:13px;padding:1rem 0">'+cfg.empty+'</div>'; return; }
 
   // Recolectar entidades únicas para el filtro
   var entidades={};
@@ -620,13 +745,14 @@ function renderTablaVencidos(rows){
     var vencStr=vencDate?vencDate.toLocaleDateString('es-CO'):'—';
     var resp=(r['RESPONSABLE']||'—').toString().trim();
     var searchStr=norm(rad+' '+entidad+' '+denunciante+' '+asunto+' '+resp);
+    var badge=cfg.badge(r);
     return '<tr data-search="'+searchStr+'" data-entidad="'+norm(entidad)+'">'
-      +'<td><span class="badge-vencido">Vencido</span></td>'
+      +'<td><span class="'+badge.cls+'">'+badge.text+'</span></td>'
       +'<td style="font-family:monospace;font-size:11px;color:var(--text)">'+rad+'</td>'
       +'<td>'+denunciante+'</td>'
       +'<td style="max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+asunto+'">'+asunto+'</td>'
       +'<td>'+entidad+'</td>'
-      +'<td style="color:var(--red)">'+vencStr+'</td>'
+      +'<td style="color:'+cfg.vencColor+'">'+vencStr+'</td>'
       +'<td>'+resp+'</td></tr>';
   }).join('');
 
@@ -636,17 +762,17 @@ function renderTablaVencidos(rows){
       return '<option value="'+norm(e)+'">'+e+' ('+cnt+')</option>';
     }).join('');
 
-  document.getElementById('tablaVencidosWrap').innerHTML=
+  wrap.innerHTML=
     '<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">'
-      +'<select id="filtroSecretaria" onchange="filtrarTabla()" style="flex:1;min-width:220px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius);padding:7px 12px;color:var(--text);font-size:13px;outline:none;cursor:pointer">'+opcionesSelect+'</select>'
-      +'<input class="search-input" id="searchVencidos" placeholder="Buscar por radicado, denunciante..." oninput="filtrarTabla()" style="flex:1;min-width:200px;margin-bottom:0">'
-      +'<button onclick="exportarPDF()" class="btn" style="background:var(--blue);color:#fff;border-color:var(--blue);padding:8px 16px;font-size:12px;white-space:nowrap">📄 Exportar PDF</button>'
-      +'<button onclick="exportarExcel()" class="btn" style="background:var(--green);color:#fff;border-color:var(--green);padding:8px 16px;font-size:12px;white-space:nowrap">📊 Exportar Excel</button>'
+      +'<select id="filtro'+suffix+'" onchange="filtrarTabla(\''+suffix+'\')" style="flex:1;min-width:220px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius);padding:7px 12px;color:var(--text);font-size:13px;outline:none;cursor:pointer">'+opcionesSelect+'</select>'
+      +'<input class="search-input" id="search'+suffix+'" placeholder="Buscar por radicado, denunciante..." oninput="filtrarTabla(\''+suffix+'\')" style="flex:1;min-width:200px;margin-bottom:0">'
+      +'<button onclick="exportarPDF(\''+suffix+'\')" class="btn" style="background:var(--blue);color:#fff;border-color:var(--blue);padding:8px 16px;font-size:12px;white-space:nowrap">📄 Exportar PDF</button>'
+      +'<button onclick="exportarExcel(\''+suffix+'\')" class="btn" style="background:var(--green);color:#fff;border-color:var(--green);padding:8px 16px;font-size:12px;white-space:nowrap">📊 Exportar Excel</button>'
     +'</div>'
-    +'<div id="contadorTabla" style="font-size:11px;color:var(--text3);margin-bottom:8px">'+rows.length+' oficio(s) mostrados</div>'
+    +'<div id="contador'+suffix+'" style="font-size:11px;color:var(--text3);margin-bottom:8px">'+rows.length+' oficio(s) mostrados</div>'
     +'<div class="tabla-scroll"><table class="tabla-vencidos"><thead><tr>'
       +'<th>Estado</th><th>Radicado</th><th>Denunciante</th><th>Asunto</th><th>Entidad</th><th>Vencimiento</th><th>Responsable</th>'
-    +'</tr></thead><tbody id="tbodyVencidos">'+tbody+'</tbody></table></div>';
+    +'</tr></thead><tbody id="tbody'+suffix+'">'+tbody+'</tbody></table></div>';
 }
 
 // ── RENDER ───────────────────────────────────────────────────────────────
@@ -658,7 +784,17 @@ function render(rows){
   var incompletos=rows.filter(isIncompleto).length;
   var noContactados=rows.filter(isNoContactado).length;
   var eficiencia=total>0?Math.round(solucionados/total*100):0;
-  radicadosVencidosData=rows.filter(isRadicadoVencido);
+
+  var radicados=rows.filter(function(r){ return norm(r['ESTADO DEL TRÁMITE']||'')==='oficio radicado'; });
+  radicadosVencidosData=radicados.filter(function(r){ return isVencido(r['¿SE ENCUENTRA VENCIDO?']||''); });
+  radicadosNoVencidosData=radicados.filter(function(r){ return !isVencido(r['¿SE ENCUENTRA VENCIDO?']||''); });
+  var hoy=startOfDay(new Date());
+  radicadosProximosData=radicadosNoVencidosData.filter(function(r){
+    var d=parseDate(r['VENCIMIENTO']||''); if(!d) return false;
+    var dias=Math.round((startOfDay(d)-hoy)/86400000);
+    return dias>=0&&dias<=DIAS_ALERTA;
+  }).sort(function(a,b){ return parseDate(a['VENCIMIENTO'])-parseDate(b['VENCIMIENTO']); });
+
   var stats=computeStats(rows);
   var porEstado=groupBy(rows,'ESTADO DEL TRÁMITE',8);
   var porEntidad=groupBy(rows,'ENTIDAD DE DESTINO',7);
@@ -765,10 +901,6 @@ function render(rows){
   }
   html+='</div>';
 
-  // PANEL ADMIN
-  html+='<div class="section-header"><div class="section-title">⚠️ Panel administrador — Oficios radicados vencidos ('+radicadosVencidosData.length+')</div></div>';
-  html+='<div class="card" style="margin-bottom:12px"><div id="tablaVencidosWrap"><div style="color:var(--text3);font-size:13px">Cargando...</div></div></div>';
-
   // ANÁLISIS GENERAL
   html+='<div class="section-title">Análisis general</div>';
   html+='<div class="grid2" style="margin-bottom:12px">'
@@ -792,9 +924,19 @@ function render(rows){
     +'</div>'
   +'</div>';
 
-  document.getElementById('root').innerHTML=html;
+  document.getElementById('page-dashboard').innerHTML=html;
   renderPeriod(rows);
-  renderTablaVencidos(radicadosVencidosData);
+
+  document.getElementById('page-vencidos').innerHTML=pageWrap('⛔ Oficios Radicados Vencidos', radicadosVencidosData.length, 'wrapVencidos');
+  document.getElementById('page-novencidos').innerHTML=pageWrap('✅ Oficios Radicados No Vencidos', radicadosNoVencidosData.length, 'wrapNoVencidos');
+  document.getElementById('page-alertas').innerHTML=pageWrap('🔔 Alertas — Próximos a vencer (≤'+DIAS_ALERTA+' días)', radicadosProximosData.length, 'wrapAlertas');
+  renderTablaOficios('Vencidos', radicadosVencidosData);
+  renderTablaOficios('NoVencidos', radicadosNoVencidosData);
+  renderTablaOficios('Alertas', radicadosProximosData);
+  updateSidebarBadges();
+
+  document.getElementById('root').style.display='none';
+  showPage(currentPage);
 
   if(meses.length){
     var ctx=document.getElementById('cMes');
@@ -843,6 +985,8 @@ function checkAuth(){
 function loadData(){
   var btn=document.getElementById('syncBtn');
   btn.disabled=true; btn.classList.add('spinning');
+  Object.keys(PAGE_TITLES).forEach(function(p){ var el=document.getElementById('page-'+p); if(el) el.style.display='none'; });
+  document.getElementById('root').style.display='';
   document.getElementById('root').innerHTML='<div class="state-center"><div class="spinner"></div><div>Conectando con Google Sheets...</div><div style="font-size:12px;color:var(--text3)">Esto puede tomar hasta 45 segundos la primera vez</div></div>';
   var cbName='cb_'+Date.now(), script=document.createElement('script');
   var timeout=setTimeout(function(){cleanup();showError('Tiempo de espera agotado. Reintenta.');},45000);
