@@ -740,7 +740,10 @@ function exportarPDF(suffix){
   win.document.write('.rad{font-family:monospace;font-size:10px;}');
   win.document.write('.venc{color:#b91c1c;font-weight:600;}');
   win.document.write('.footer{margin-top:24px;font-size:10px;color:#888;border-top:1px solid #ddd;padding-top:12px;}');
-  win.document.write('@media print{body{padding:16px;}button{display:none!important;}}');
+  win.document.write('.entidad-section{margin-top:28px;}');
+  win.document.write('.entidad-section:first-of-type{margin-top:0;}');
+  win.document.write('.entidad-titulo{font-size:13px;font-weight:bold;color:#1a1a2e;background:#eef2ff;padding:8px 10px;border-left:4px solid #1a1a2e;}');
+  win.document.write('@media print{body{padding:16px;}button{display:none!important;}.entidad-section{page-break-before:always;}.entidad-section:first-of-type{page-break-before:auto;}}');
   win.document.write('</style></head><body>');
   win.document.write('<div class="header">');
   win.document.write('<div class="titulo">'+cfg.titulo+'</div>');
@@ -748,21 +751,35 @@ function exportarPDF(suffix){
   win.document.write('<div class="meta">Generado el '+fecha+' &nbsp;|&nbsp; Total: <strong>'+filasPDF.length+' oficio(s)</strong></div>');
   win.document.write('</div>');
   win.document.write('<button onclick="window.print()" style="padding:8px 20px;background:#1a1a2e;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;margin-bottom:12px">🖨️ Imprimir / Guardar PDF</button>');
-  win.document.write('<table><thead><tr>');
-  win.document.write('<th>#</th><th>Radicado</th><th>Denunciante</th><th>Asunto</th><th>Entidad</th><th>Vencimiento</th><th>Responsable</th>');
-  win.document.write('</tr></thead><tbody>');
-  filasPDF.forEach(function(f,i){
-    win.document.write('<tr>');
-    win.document.write('<td>'+(i+1)+'</td>');
-    win.document.write('<td class="rad">'+f.radicado+'</td>');
-    win.document.write('<td>'+f.denunciante+'</td>');
-    win.document.write('<td>'+f.asunto+'</td>');
-    win.document.write('<td>'+f.entidad+'</td>');
-    win.document.write('<td class="venc">'+f.vencimiento+'</td>');
-    win.document.write('<td>'+f.responsable+'</td>');
-    win.document.write('</tr>');
+
+  var porEntidad={};
+  filasPDF.forEach(function(f){
+    var k=f.entidad||'Sin entidad';
+    (porEntidad[k]=porEntidad[k]||[]).push(f);
   });
-  win.document.write('</tbody></table>');
+  var entidadesOrden=Object.keys(porEntidad).sort(function(a,b){return a.localeCompare(b,'es');});
+
+  entidadesOrden.forEach(function(entidad){
+    var grupo=porEntidad[entidad];
+    win.document.write('<div class="entidad-section">');
+    win.document.write('<div class="entidad-titulo">'+entidad+' ('+grupo.length+' oficio(s))</div>');
+    win.document.write('<table><thead><tr>');
+    win.document.write('<th>#</th><th>Radicado</th><th>Denunciante</th><th>Asunto</th><th>Vencimiento</th><th>Responsable</th>');
+    win.document.write('</tr></thead><tbody>');
+    grupo.forEach(function(f,i){
+      win.document.write('<tr>');
+      win.document.write('<td>'+(i+1)+'</td>');
+      win.document.write('<td class="rad">'+f.radicado+'</td>');
+      win.document.write('<td>'+f.denunciante+'</td>');
+      win.document.write('<td>'+f.asunto+'</td>');
+      win.document.write('<td class="venc">'+f.vencimiento+'</td>');
+      win.document.write('<td>'+f.responsable+'</td>');
+      win.document.write('</tr>');
+    });
+    win.document.write('</tbody></table>');
+    win.document.write('</div>');
+  });
+
   win.document.write('<div class="footer">Equipo Jurídico — Concejo de Medellín &nbsp;|&nbsp; Este documento fue generado automáticamente desde Oficios LINK</div>');
   win.document.write('</body></html>');
   win.document.close();
